@@ -1,0 +1,118 @@
+{
+  "info": {
+    "name": "HookFlow API",
+    "description": "Exercise endpoint management, event ingestion, delivery history, and dashboard data.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "endpointId", "value": "" },
+    { "key": "eventId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health check",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      }
+    },
+    {
+      "name": "List endpoints",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/endpoints"
+      }
+    },
+    {
+      "name": "Register sample receiver",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "  pm.collectionVariables.set('endpointId', pm.response.json().id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\":\"Postman sample receiver\",\"url\":\"http://backend:8000/api/v1/receiver/webhook\",\"description\":\"Receiver reachable from the Docker worker\"}"
+        },
+        "url": "{{baseUrl}}/api/v1/endpoints"
+      }
+    },
+    {
+      "name": "Submit order event",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('eventId', `evt_${pm.variables.replaceIn('{{$guid}}')}`);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"event_id\":\"{{eventId}}\",\"event_type\":\"order.placed\",\"payload\":{\"order_id\":\"ORD-1001\",\"amount\":42.5,\"currency\":\"USD\"},\"endpoint_id\":{{endpointId}},\"max_retries\":3}"
+        },
+        "url": "{{baseUrl}}/api/v1/events"
+      }
+    },
+    {
+      "name": "List events",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/events?limit=50"
+      }
+    },
+    {
+      "name": "Get event and delivery attempts",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/events/{{eventId}}"
+      }
+    },
+    {
+      "name": "Manually retry failed event",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/v1/events/{{eventId}}/retry"
+      }
+    },
+    {
+      "name": "Delivery logs",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/deliveries?limit=50"
+      }
+    },
+    {
+      "name": "Dashboard statistics",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/dashboard/stats"
+      }
+    },
+    {
+      "name": "Sample receiver logs",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/receiver/logs?limit=50"
+      }
+    }
+  ]
+}
